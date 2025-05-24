@@ -39,13 +39,23 @@ Backend Database for PD:
 
 Backend Database
 Uses Oracle Berkeley DB Java Edition (JE): – Highly performant for read/writes. – 
-Supports ACID transactions: ›
-Atomicity: All changes to data are performed as a single operation; for example, either all changes are performed or none of them are.
-Consistency: There are no partially completed transactions. ›
-Isolation: Transactions in progress are invisible to others. 
-Durable: When committed, data modifications will persist and cannot be undone.
-Supports incremental backups.
-Compact representation of directory data such as entryUUId, timestamps, and DN strings
+Supports ACID transactions:
+🔸 Atomicity
+All changes in a transaction happen as one unit — either all succeed or none happen.
+Example:
+If you add a user and update their group in one transaction, both operations must succeed together. If one fails, everything rolls back.
+🔸 Consistency
+The database is always in a valid state — no partial or corrupt changes are left behind.
+Example:
+If your schema requires a user to have a userID and email, the DB ensures you can’t end up with only one of them saved.
+🔸 Isolation
+While a transaction is running, its changes are invisible to others until committed.
+Example:
+If two admins are updating the same user, they won’t see each other’s changes until the transaction finishes. This prevents conflicts.
+🔸 Durability
+Once a transaction is committed, its changes are permanently stored, even if the system crashes.
+Example:
+If you commit a new record and then your app crashes, the record is still there when you restart.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -72,9 +82,6 @@ Database stays compact and healthy without you needing to manually intervene
 A Berkeley DB JE environment can be composed of multiple databases, each of which is stored in a single folder on the file system. Rather than having separate files for records and transaction logs, Berkeley DB JE uses a rolling log file to store everything; this includes the B-Tree structure, the user provided records and the indexes.  Write operations append entries as the last items in the log file.  When a certain size is reached (10MB by default), a new log file is created.  This results in consistent write performance regardless of the database size.
 
 The Berkeley DB Java Edition has a number of threads that periodically check the occupancy of each log. If it detects that the size associated with active entries falls below a certain threshold (50% of its maximum size, or 5MB by default), it rewrites the active records to the end of the latest log file and deletes the old log altogether. This can be seen in the log found at row 2, column 5.
-ChatGPT said:
-You're describing a key feature of Berkeley DB Java Edition related to log file cleaning (a form of garbage collection) in its storage engine. Let's break this down step-by-step in plain terms:
-
 🧠 What’s Happening?
 Berkeley DB stores data in log files on disk, and over time, some of this data becomes stale or obsolete (e.g., deleted keys, old versions of updated records).
 To avoid wasting disk space and keep performance high, Berkeley DB uses background threads to check log file occupancy and clean them up when necessary.
@@ -180,7 +187,6 @@ How do you check and change it?
 Check current limits:
 ulimit -n
 Temporarily set a higher soft limit (until logout):
-
 ulimit -n 65536
 
 Permanently set higher limits:
