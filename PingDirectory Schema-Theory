@@ -1,0 +1,143 @@
+What is a Schema?
+In LDAP directories like PingDirectory, a schema defines the structure and rules for how data is stored and organized in the directory. Think of it like a blueprint that tells the directory:
+What kind of entries can exist
+What attributes those entries can have
+What rules must be followed when creating or modifying entries
+Reduces redundant data definitions. 
+Provides uniform method for clients or apps to access data.
+----------------------------------------------------------------------------------------------------------------------------------------
+
+ELEMENTS OF A SCHEMA:
+
+A) Object Classess:
+
+📚 What are objectClasses in LDAP (and PingDirectory)?
+An objectClass in LDAP defines what kind of object a directory entry is.
+It also defines:
+What attributes are required (mandatory).
+What attributes are allowed (optional).
+What the rules are for how an entry should look.
+Think of it like a template or blueprint for entries in your directory.
+🔹 Example:
+Let's say you want to store information about a person in LDAP.
+You might use the objectClass called inetOrgPerson.
+Required attributes: sn (surname), cn (common name)
+Optional attributes: mail, telephoneNumber, title, etc.
+Example LDAP entry:
+dn: uid=john.doe,ou=People,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+uid: john.doe
+cn: John Doe
+sn: Doe
+mail: john.doe@example.com
+telephoneNumber: +1 555 123 4567
+Here:
+
+objectClass: inetOrgPerson says: "This entry represents a person with standard attributes like email, phone, etc."
+
+cn, sn, mail, and telephoneNumber are attributes defined by these object classes.
+
+🔥 Important points:
+Every LDAP entry must have at least one objectClass.
+
+Usually entries have multiple objectClasses stacked together — because some are generic (like top) and some are specific (like inetOrgPerson).
+Custom objectClasses: You can define your own objectClasses if you want special kinds of entries that the default ones don't cover.
+Schema: ObjectClasses are defined in the server's schema (a set of .ldif files under /config/schema in PingDirectory).
+
+🧠 Think of it like:
+
+LDAP Entry	Real-world Example
+objectClass = car	A car must have VIN, wheels, engine
+objectClass = person	A person must have name, surname
+objectClass = employee	An employee must have jobTitle, employeeNumber
+An entry inherits the rules from all its objectClasses.
+
+B) Attribute Types
+These define the fields or properties that entries can have — like cn (common name), uid, mail, employeeNumber.
+Each attribute type specifies:
+Syntax (data type: string, integer, etc.)
+Uniqueness, case sensitivity, etc.
+Syntaxes
+Define the data format or data type for attributes.
+For example:
+Directory String (text)
+Integer
+Boolean
+Distinguished Name (DN)
+Matching Rules
+Define how attribute values are compared during searches or filters.
+For example:
+Case-insensitive match
+Substring match
+Numeric equality
+DIT Structure Rules (rarely customized)
+Defines where entries of a given type can exist in the tree (e.g., people only under ou=People,dc=example,dc=com).
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+Extending the Schema:
+Why would I extend the schema? – Business requirements require different attributes
+Can you simply modify the defaults or use unused attributes? – Not recommended – Can create auxiliary class
+--------------------------------------------------------------------------------------------------------------------------------------
+
+Schema Modification
+Schema definitions can be modified to customize directory for unique requirements: 
+– Administrative Console: Schema Editor. 
+– Simple ldapmodify commands. 
+– Manipulating LDIF files in the config/schema directory.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+Migration of Schema Definitions 
+Migrate LDAP Schema tool:
+migrate-ldap-schema --no-prompt --sourceHost source.example.com \ --sourcePort 1389 --sourceBindDN "cn=dmanager" \ --sourceBindPassword "password" --targetHost target.example.com \ --targetPort 1389 --targetBindDN "cn=dmanager" \ --targetBindPassword "password" --applyChanges
+The migrate-ldap-schema tool in PingDirectory helps you safely migrate schema definitions from one LDAP environment (usually a different vendor or older system) into PingDirectory’s schema format, ensuring compatibility and proper functionality.
+
+🛠️ Purpose of migrate-ldap-schema
+When you move from another LDAP server (like OpenLDAP, Oracle DSEE, Sun One Directory Server, etc.) to PingDirectory, the schema definitions (objectClasses, attributeTypes, syntaxes, etc.) might be:
+In a different format
+Contain non-standard definitions
+Use custom OIDs or syntaxes not recognized by PingDirectory
+
+The migrate-ldap-schema tool helps you:
+
+✅ Convert external schema files into PingDirectory-compatible format
+✅ Validate them for syntax errors or incompatibility
+✅ Avoid manual conversion mistakes
+✅ Generate .ldif or .schema files ready for use in PingDirectory
+
+🔁 What It Actually Does
+Takes input schema files (e.g., from OpenLDAP or Oracle)
+Parses the file to read object classes and attributes
+Maps or modifies unsupported or vendor-specific features
+Outputs schema files in PingDirectory-compliant LDIF format
+📦 Typical Usage
+You run the command like:
+
+bin/migrate-ldap-schema --no-prompt --sourceHost source.example.com \ --sourcePort 1389 --sourceBindDN "cn=dmanager" \ --sourceBindPassword "password" --targetHost target.example.c
+Or interactively, where it asks for:
+Source schema file(s)
+Source directory type (OpenLDAP, Oracle, etc.)
+Output location for converted schema
+
+🧠 Why It's Useful
+Without this tool:
+You’d manually rewrite and test schema files
+Risk importing broken schema into PD
+Get runtime errors or failed imports
+With the tool:
+Schema is automatically normalized, validated, and cleaned up
+You get a clean and deployable schema for PingDirectory
+Saves time and reduces errors in migration projects
+✅ When to Use It
+
+Use migrate-ldap-schema when:
+You're migrating from another LDAP product to PingDirectory
+You need to import legacy/custom schemas
+You want to standardize schema files to PD's format
+❌ What It Doesn’t Do
+It doesn't automatically install the schema — you still review and move the files to /config/schema/
+Doesn’t migrate data entries (just schema)
+Doesn’t handle non-LDAP formats like database schemas
+
